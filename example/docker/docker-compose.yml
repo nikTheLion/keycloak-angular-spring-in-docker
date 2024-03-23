@@ -1,0 +1,53 @@
+version: '3.7'
+
+services:
+  postgres:
+    image: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: password
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    command: start-dev --import-realm
+    environment:
+      DB_VENDOR: POSTGRES
+      DB_ADDR: postgres
+      DB_DATABASE: keycloak
+      DB_USER: keycloak
+      DB_PASSWORD: password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    volumes:
+      - ./config:/opt/keycloak/data/import
+    depends_on:
+      - postgres
+    ports:
+      - 8080:8080
+    networks:
+      - spring-cloud-network
+  example-service:
+    image: example-service:latest
+    ports:
+      - 8081:8081
+    depends_on:
+      - keycloak
+    networks:
+      - spring-cloud-network
+  frontend-service:
+    image: frontend-service
+    depends_on:
+      - keycloak
+    ports:
+      - 4200:4200
+    networks:
+      - spring-cloud-network
+
+volumes:
+  postgres_data:
+networks:
+  spring-cloud-network:
+    driver: bridge
